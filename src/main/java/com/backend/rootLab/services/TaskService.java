@@ -10,8 +10,8 @@ public interface TaskService {
     TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO);
     List<TaskResponseDTO> getAllTasks();
     TaskResponseDTO getTaskById(String id);
-    List<TaskResponseDTO> getTasksByProjectId(String projectId);
-    List<TaskResponseDTO> getTasksByUserId(String userId);
+    List<TaskResponseDTO> getTasksByProject(String projectId);
+    List<TaskResponseDTO> getTasksByUser(String userId);
     TaskResponseDTO updateTask(String id, TaskRequestDTO taskRequestDTO);
     void deleteTask(String id);
 

@@ -1,6 +1,7 @@
 package com.backend.rootLab.services;
 
 
+import com.backend.rootLab.DTOS.Projects.ProjectResponseDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskRequestDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskResponseDTO;
 import com.backend.rootLab.models.TaskModel;
@@ -32,7 +33,55 @@ public class TaskServiceImpl implements TaskService {
 
         return mapToDTO(taskRepository.save(taskModel));
     }
+    @Override
     public List<TaskResponseDTO> getAllTasks(){
 
+        return taskRepository.findAll().stream().map(this::mapToDTO).toList();
+
     }
+
+    @Override
+   public TaskResponseDTO getTaskById(String id){
+    TaskModel taskModel = taskRepository.findById(id).orElseThrow(()-> new RuntimeException("Task Was Not Founf!"));
+
+    return maptToDTO(taskModel);
+   }
+ 
+
+   @Override
+   public  List<TaskResponseDTO> getTasksByProject(String projectId){
+
+    return taskRepository.findByProjectId(projectId).stream().map(this::mapToDTO).toList();
+
+
+
+   }
+   @Override
+   public List<TaskResponseDTO> getTasksByUser(String userId){
+    return taskRepository.findByAssignedUserId(userId).stream().map(this::mapToDTO).toList();
+
+   }
+
+   @Override
+   public TaskResponseDTO updateTask(String id, TaskRequestDTO taskRequestDTO){
+
+    TaskModel taskModel = taskRepository.findById(id).orElseThrow(()-> new RuntimeException("Task not found"));
+   
+
+    taskModel.setTitle(taskRequestDTO.getTitle());
+    taskModel.setDescription(taskRequestDTO.getDescription());
+    taskModel.setProjectId(taskRequestDTO.getProjectId());
+    taskModel.setAssignedUserId(taskRequestDTO.getAssignedUserId());
+
+
+   }
+
+
+
+
+
+
+
+
+
 }
