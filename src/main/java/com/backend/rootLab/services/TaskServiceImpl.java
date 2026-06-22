@@ -26,6 +26,7 @@ public class TaskServiceImpl implements TaskService {
                 .projectId(taskRequestDTO.getProjectId())
                 .assignedUserId(taskRequestDTO.getAssignedUserId())
                 .status(taskRequestDTO.getStatus())
+                .sprintId(taskRequestDTO.getSprintId())
                 .priority(taskRequestDTO.getPriority())
                 .dueDate(taskRequestDTO.getDueDate())
                 .createdAt(LocalDateTime.now())
@@ -44,7 +45,7 @@ public class TaskServiceImpl implements TaskService {
    public TaskResponseDTO getTaskById(String id){
     TaskModel taskModel = taskRepository.findById(id).orElseThrow(()-> new RuntimeException("Task Was Not Founf!"));
 
-    return maptToDTO(taskModel);
+    return mapToDTO(taskModel);
    }
  
 
@@ -63,19 +64,47 @@ public class TaskServiceImpl implements TaskService {
    }
 
    @Override
-   public TaskResponseDTO updateTask(String id, TaskRequestDTO taskRequestDTO){
+   public TaskResponseDTO updateTask(String id, TaskRequestDTO request) {
 
-    TaskModel taskModel = taskRepository.findById(id).orElseThrow(()-> new RuntimeException("Task not found"));
-   
+       TaskModel task = taskRepository.findById(id)
+               .orElseThrow(() -> new RuntimeException("Task not found"));
 
-    taskModel.setTitle(taskRequestDTO.getTitle());
-    taskModel.setDescription(taskRequestDTO.getDescription());
-    taskModel.setProjectId(taskRequestDTO.getProjectId());
-    taskModel.setAssignedUserId(taskRequestDTO.getAssignedUserId());
+       task.setTitle(request.getTitle());
+       task.setDescription(request.getDescription());
+       task.setProjectId(request.getProjectId());
+       task.setAssignedUserId(request.getAssignedUserId());
+       task.setStatus(request.getStatus());
+       task.setSprintId(request.getSprintId());
+       task.setPriority(request.getPriority());
+       task.setDueDate(request.getDueDate());
+       task.setUpdatedAt(LocalDateTime.now());
 
-
+       return mapToDTO(taskRepository.save(task));
    }
+    @Override
+    public void deleteTask(String id) {
+        taskRepository.deleteById(id);
+    }
 
+    @Override
+    public List<TaskResponseDTO> getTasksByStatus(String status){
+        return  taskRepository.findByStatus(status).stream().map(this::mapToDTO).toList();
+    }
+
+    private TaskResponseDTO mapToDTO(TaskModel task) {
+        return TaskResponseDTO.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .projectId(task.getProjectId())
+                .assignedUserId(task.getAssignedUserId())
+                .status(task.getStatus())
+                .priority(task.getPriority())
+                .dueDate(task.getDueDate())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .build();
+    }
 
 
 

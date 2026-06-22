@@ -16,6 +16,7 @@ public class TaskResponseDTO {
     private String id;
     private String title;
     private String description;
+    private String sprintId;
     private String projectId;
     private String assignedUserId;
     private TaskStatus status;

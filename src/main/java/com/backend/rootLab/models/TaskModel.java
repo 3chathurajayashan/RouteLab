@@ -25,6 +25,7 @@ public class TaskModel {
     private TaskStatus status;
     private Priority priority;
     private LocalDate dueDate;
+    private String sprintId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

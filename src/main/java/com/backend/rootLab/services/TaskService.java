@@ -14,5 +14,6 @@ public interface TaskService {
     List<TaskResponseDTO> getTasksByUser(String userId);
     TaskResponseDTO updateTask(String id, TaskRequestDTO taskRequestDTO);
     void deleteTask(String id);
+    List<TaskResponseDTO> getTasksByStatus(String status);
 
 }

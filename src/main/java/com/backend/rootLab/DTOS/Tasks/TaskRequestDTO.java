@@ -11,6 +11,7 @@ public class TaskRequestDTO {
     private String title;
     private String description;
     private String projectId;
+    private String sprintId;
     private String assignedUserId;
     private TaskStatus status;
     private Priority priority;
