@@ -9,7 +9,5 @@ public class CommentRequestDTO {
 
     private String taskId;
 
-    private String userId;
-
     private String message;
 }

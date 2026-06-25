@@ -3,7 +3,9 @@ package com.backend.rootLab.services;
 import com.backend.rootLab.DTOS.Projects.ProjectRequestDTO;
 import com.backend.rootLab.DTOS.Projects.ProjectResponseDTO;
 import com.backend.rootLab.models.ProjectModel;
+import com.backend.rootLab.models.UserModel;
 import com.backend.rootLab.repository.ProjectRepository;
+import com.backend.rootLab.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,34 +15,62 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProjectServiceImpl implements ProjectService {
+
     private final ProjectRepository projectRepository;
+    private final CurrentUserService currentUserService;
 
     @Override
-    public ProjectResponseDTO createProject(ProjectRequestDTO projectRequestDTO, String ownerId){
-        ProjectModel projectModel = ProjectModel.builder().name(projectRequestDTO.getName())
+    public ProjectResponseDTO createProject(
+            ProjectRequestDTO projectRequestDTO
+    ) {
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
+        ProjectModel projectModel = ProjectModel.builder()
+                .name(projectRequestDTO.getName())
                 .description(projectRequestDTO.getDescription())
-                .ownerId(ownerId)
+                .ownerId(currentUser.getId())
                 .teamMembers(projectRequestDTO.getTeamMembers())
                 .status(projectRequestDTO.getStatus())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
+
         return mapToResponse(
                 projectRepository.save(projectModel)
         );
     }
-    @Override
-    public List<ProjectResponseDTO> getAllProjects(){
-        return projectRepository.findAll().stream().map(this::mapToResponse).toList();
 
+    @Override
+    public List<ProjectResponseDTO> getAllProjects() {
+
+        return projectRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
+
     @Override
     public ProjectResponseDTO getProjectById(String id) {
 
-         ProjectModel projectModel = projectRepository.findById(id)
-                 .orElseThrow(()->new RuntimeException("project bot found!"));
+        ProjectModel projectModel = projectRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Project not found"));
 
         return mapToResponse(projectModel);
+    }
+    @Override
+    public List<ProjectResponseDTO> getMyProjects() {
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
+        return projectRepository
+                .findByOwnerId(currentUser.getId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
@@ -53,11 +83,23 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectResponseDTO updateProject(ProjectRequestDTO projectRequestDTO , String id){
+    public ProjectResponseDTO updateProject(
+            ProjectRequestDTO projectRequestDTO,
+            String id
+    ) {
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
 
         ProjectModel project = projectRepository.findById(id)
                 .orElseThrow(() ->
                         new RuntimeException("Project not found"));
+
+        if (!project.getOwnerId().equals(currentUser.getId())) {
+            throw new RuntimeException(
+                    "You are not allowed to update this project"
+            );
+        }
 
         project.setName(projectRequestDTO.getName());
         project.setDescription(projectRequestDTO.getDescription());
@@ -69,13 +111,29 @@ public class ProjectServiceImpl implements ProjectService {
                 projectRepository.save(project)
         );
     }
+
     @Override
     public void deleteProject(String id) {
 
-        projectRepository.deleteById(id);
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
+        ProjectModel project = projectRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Project not found"));
+
+        if (!project.getOwnerId().equals(currentUser.getId())) {
+            throw new RuntimeException(
+                    "You are not allowed to delete this project"
+            );
+        }
+
+        projectRepository.delete(project);
     }
 
-    private ProjectResponseDTO mapToResponse(ProjectModel project) {
+    private ProjectResponseDTO mapToResponse(
+            ProjectModel project
+    ) {
 
         return ProjectResponseDTO.builder()
                 .id(project.getId())
@@ -88,6 +146,4 @@ public class ProjectServiceImpl implements ProjectService {
                 .updatedAt(project.getUpdatedAt())
                 .build();
     }
-
-
 }

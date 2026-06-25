@@ -19,10 +19,9 @@ public class ProjectController {
     // CREATE PROJECT
     @PostMapping
     public ProjectResponseDTO createProject(
-            @RequestBody ProjectRequestDTO projectRequestDTO,
-            @RequestParam String ownerId
+            @RequestBody ProjectRequestDTO projectRequestDTO
     ){
-        return projectService.createProject(projectRequestDTO, ownerId);
+        return projectService.createProject(projectRequestDTO);
     }
 
     // GET ALL PROJECTS
@@ -42,7 +41,10 @@ public class ProjectController {
     public List<ProjectResponseDTO> getProjectsByOwner(@PathVariable String ownerId){
         return projectService.getProjectsByOwner(ownerId);
     }
-
+    @GetMapping("/my-projects")
+    public List<ProjectResponseDTO> getMyProjects(){
+        return projectService.getMyProjects();
+    }
     // UPDATE PROJECT
     @PutMapping("/{id}")
     public ProjectResponseDTO updateProject(

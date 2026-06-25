@@ -5,26 +5,31 @@ package com.backend.rootLab.services;
 import com.backend.rootLab.DTOS.Comments.CommentRequestDTO;
 import com.backend.rootLab.DTOS.Comments.CommentResponseDTO;
 import com.backend.rootLab.models.CommentModel;
+import com.backend.rootLab.models.UserModel;
 import com.backend.rootLab.repository.CommentRepository;
+import com.backend.rootLab.security.CurrentUserService;
 import com.backend.rootLab.services.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
+    private final CurrentUserService currentUserService;
 
     @Override
     public CommentResponseDTO createComment(CommentRequestDTO request) {
 
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
         CommentModel comment = CommentModel.builder()
                 .taskId(request.getTaskId())
-                .userId(request.getUserId())
+                .userId(currentUser.getId())
                 .message(request.getMessage())
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -74,7 +79,19 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void deleteComment(String id) {
 
-        commentRepository.deleteById(id);
+        CommentModel comment = commentRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Comment not found"));
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
+        // only owner can delete
+        if (!comment.getUserId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not allowed to delete this comment");
+        }
+
+        commentRepository.delete(comment);
     }
 
     private CommentResponseDTO mapToDTO(CommentModel comment) {
