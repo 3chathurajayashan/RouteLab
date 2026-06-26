@@ -11,4 +11,5 @@ RootLabApplication {
 		SpringApplication.run(RootLabApplication.class, args);
 	}
 
+
 }

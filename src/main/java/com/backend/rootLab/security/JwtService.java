@@ -2,6 +2,7 @@ package com.backend.rootLab.security;
 
 
 
+
 import com.backend.rootLab.models.UserModel;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -17,49 +18,40 @@ public class JwtService {
     private static final String SECRET_KEY =
             "mySecretKeymySecretKeymySecretKeymySecretKey";
 
-    public String generateToken(UserModel user){
+    public String generateToken(UserModel user) {
 
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("role", user.getRole().name())
                 .setIssuedAt(new Date())
-                .setExpiration(
-                        new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)
-                )
-                .signWith(
-                        SignatureAlgorithm.HS256,
-                        SECRET_KEY
-                )
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 1 day
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }
 
-    public String extractUsername(String token){
+    public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(
-            String token,
-            Function<Claims,T> claimsResolver
-    ){
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+        return resolver.apply(extractAllClaims(token));
     }
 
-    private Claims extractAllClaims(String token){
-
+    private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .setSigningKey(SECRET_KEY)
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    public boolean isTokenValid(
-            String token,
-            String email
-    ){
+    public boolean isTokenValid(String token, String email) {
+        return extractUsername(token).equals(email)
+                && !isTokenExpired(token);
+    }
 
-        final String username = extractUsername(token);
-
-        return username.equals(email);
+    private boolean isTokenExpired(String token) {
+        return extractAllClaims(token)
+                .getExpiration()
+                .before(new Date());
     }
 }

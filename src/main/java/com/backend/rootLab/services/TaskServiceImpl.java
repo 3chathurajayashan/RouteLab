@@ -4,10 +4,11 @@ package com.backend.rootLab.services;
 import com.backend.rootLab.DTOS.Projects.ProjectResponseDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskRequestDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskResponseDTO;
-import com.backend.rootLab.models.TaskModel;
-import com.backend.rootLab.models.TaskStatus;
-import com.backend.rootLab.models.UserModel;
+import com.backend.rootLab.models.*;
+import com.backend.rootLab.repository.ProjectRepository;
+import com.backend.rootLab.repository.SprintRepository;
 import com.backend.rootLab.repository.TaskRepository;
+import com.backend.rootLab.repository.UserRepository;
 import com.backend.rootLab.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,31 +22,51 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final CurrentUserService currentUserService;
+    private final ProjectRepository projectRepository;
+    private final SprintRepository sprintRepository;
+    private final UserRepository userRepository;
 
     @Override
-    public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO){
+    public TaskResponseDTO createTask(TaskRequestDTO dto) {
 
-        UserModel currentUser =
-                currentUserService.getCurrentUser();
+        UserModel currentUser = currentUserService.getCurrentUser();
 
-        TaskModel taskModel = TaskModel.builder()
-                .title(taskRequestDTO.getTitle())
-                .description(taskRequestDTO.getDescription())
-                .projectId(taskRequestDTO.getProjectId())
-                .assignedUserId(taskRequestDTO.getAssignedUserId())
+        // 1. Validate Project
+        ProjectModel project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
-                .creatorId(currentUser.getId()) // 🔥 IMPORTANT
+        // 2. Validate Sprint (if provided)
+        if (dto.getSprintId() != null) {
+            SprintModel sprint = sprintRepository.findById(dto.getSprintId())
+                    .orElseThrow(() -> new RuntimeException("Sprint not found"));
 
-                .status(taskRequestDTO.getStatus())
-                .sprintId(taskRequestDTO.getSprintId())
-                .priority(taskRequestDTO.getPriority())
-                .dueDate(taskRequestDTO.getDueDate())
+            // ensure sprint belongs to same project
+            if (!sprint.getProjectId().equals(project.getId())) {
+                throw new RuntimeException("Sprint does not belong to this project");
+            }
+        }
 
+        // 3. Validate Assigned User (if provided)
+        if (dto.getAssignedUserId() != null) {
+            userRepository.findById(dto.getAssignedUserId())
+                    .orElseThrow(() -> new RuntimeException("Assigned user not found"));
+        }
+
+        TaskModel task = TaskModel.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .projectId(dto.getProjectId())
+                .sprintId(dto.getSprintId())
+                .assignedUserId(dto.getAssignedUserId())
+                .creatorId(currentUser.getId())
+                .status(dto.getStatus())
+                .priority(dto.getPriority())
+                .dueDate(dto.getDueDate())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        return mapToDTO(taskRepository.save(taskModel));
+        return mapToDTO(taskRepository.save(task));
     }
     @Override
     public List<TaskResponseDTO> getAllTasks(){
@@ -77,28 +98,47 @@ public class TaskServiceImpl implements TaskService {
    }
 
     @Override
-    public TaskResponseDTO updateTask(String id, TaskRequestDTO request) {
+    public TaskResponseDTO updateTask(String id, TaskRequestDTO dto) {
 
-        UserModel currentUser =
-                currentUserService.getCurrentUser();
+        UserModel currentUser = currentUserService.getCurrentUser();
 
         TaskModel task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        // 🔥 ONLY CREATOR OR ASSIGNEE CAN UPDATE
+        // permission check
         if (!task.getCreatorId().equals(currentUser.getId())
                 && !task.getAssignedUserId().equals(currentUser.getId())) {
-            throw new RuntimeException("Not allowed to update this task");
+            throw new RuntimeException("Not allowed to update task");
         }
 
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setProjectId(request.getProjectId());
-        task.setAssignedUserId(request.getAssignedUserId());
-        task.setStatus(request.getStatus());
-        task.setSprintId(request.getSprintId());
-        task.setPriority(request.getPriority());
-        task.setDueDate(request.getDueDate());
+        // validate project
+        ProjectModel project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // validate sprint consistency
+        if (dto.getSprintId() != null) {
+            SprintModel sprint = sprintRepository.findById(dto.getSprintId())
+                    .orElseThrow(() -> new RuntimeException("Sprint not found"));
+
+            if (!sprint.getProjectId().equals(project.getId())) {
+                throw new RuntimeException("Sprint does not belong to this project");
+            }
+        }
+
+        // validate user
+        if (dto.getAssignedUserId() != null) {
+            userRepository.findById(dto.getAssignedUserId())
+                    .orElseThrow(() -> new RuntimeException("Assigned user not found"));
+        }
+
+        task.setTitle(dto.getTitle());
+        task.setDescription(dto.getDescription());
+        task.setProjectId(dto.getProjectId());
+        task.setSprintId(dto.getSprintId());
+        task.setAssignedUserId(dto.getAssignedUserId());
+        task.setStatus(dto.getStatus());
+        task.setPriority(dto.getPriority());
+        task.setDueDate(dto.getDueDate());
         task.setUpdatedAt(LocalDateTime.now());
 
         return mapToDTO(taskRepository.save(task));
