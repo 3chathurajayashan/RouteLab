@@ -5,6 +5,8 @@ package com.backend.rootLab.controllers;
 import com.backend.rootLab.DTOS.Tasks.TaskRequestDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskResponseDTO;
 
+import com.backend.rootLab.security.CurrentUserService;
+import com.backend.rootLab.services.TaskService;
 import com.backend.rootLab.services.TaskServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TaskController {
 
-    private final TaskServiceImpl taskService;
+    private final TaskService taskService;
+    private  final CurrentUserService currentUserService;
 
     @PostMapping
     public TaskResponseDTO createTask(@RequestBody TaskRequestDTO request) {
@@ -38,9 +41,11 @@ public class TaskController {
         return taskService.getTasksByProject(projectId);
     }
 
-    @GetMapping("/user/{userId}")
-    public List<TaskResponseDTO> getTasksByUser(@PathVariable String userId) {
-        return taskService.getTasksByUser(userId);
+    @GetMapping("/my-tasks")
+    public List<TaskResponseDTO> getMyTasks(){
+        return taskService.getTasksByUser(
+                currentUserService.getCurrentUser().getId()
+        );
     }
 
     @PutMapping("/{id}")

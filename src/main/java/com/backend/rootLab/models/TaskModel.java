@@ -19,6 +19,7 @@ public class TaskModel {
     @Id
     private String id;
     private String title;
+    private String creatorId;
     private String description;
     private String projectId;
     private String assignedUserId;

@@ -2,6 +2,7 @@ package com.backend.rootLab.services;
 
 import com.backend.rootLab.DTOS.Tasks.TaskRequestDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskResponseDTO;
+import com.backend.rootLab.models.TaskStatus;
 
 import java.util.List;
 
@@ -14,6 +15,6 @@ public interface TaskService {
     List<TaskResponseDTO> getTasksByUser(String userId);
     TaskResponseDTO updateTask(String id, TaskRequestDTO taskRequestDTO);
     void deleteTask(String id);
-    List<TaskResponseDTO> getTasksByStatus(String status);
+    List<TaskResponseDTO> getTasksByStatus(TaskStatus status);
 
 }

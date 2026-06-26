@@ -5,7 +5,10 @@ import com.backend.rootLab.DTOS.Projects.ProjectResponseDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskRequestDTO;
 import com.backend.rootLab.DTOS.Tasks.TaskResponseDTO;
 import com.backend.rootLab.models.TaskModel;
+import com.backend.rootLab.models.TaskStatus;
+import com.backend.rootLab.models.UserModel;
 import com.backend.rootLab.repository.TaskRepository;
+import com.backend.rootLab.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,20 +20,30 @@ import java.util.List;
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
+    private final CurrentUserService currentUserService;
 
     @Override
     public TaskResponseDTO createTask(TaskRequestDTO taskRequestDTO){
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
         TaskModel taskModel = TaskModel.builder()
                 .title(taskRequestDTO.getTitle())
                 .description(taskRequestDTO.getDescription())
                 .projectId(taskRequestDTO.getProjectId())
                 .assignedUserId(taskRequestDTO.getAssignedUserId())
+
+                .creatorId(currentUser.getId()) // 🔥 IMPORTANT
+
                 .status(taskRequestDTO.getStatus())
                 .sprintId(taskRequestDTO.getSprintId())
                 .priority(taskRequestDTO.getPriority())
                 .dueDate(taskRequestDTO.getDueDate())
+
                 .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now()).build();
+                .updatedAt(LocalDateTime.now())
+                .build();
 
         return mapToDTO(taskRepository.save(taskModel));
     }
@@ -63,31 +76,51 @@ public class TaskServiceImpl implements TaskService {
 
    }
 
-   @Override
-   public TaskResponseDTO updateTask(String id, TaskRequestDTO request) {
+    @Override
+    public TaskResponseDTO updateTask(String id, TaskRequestDTO request) {
 
-       TaskModel task = taskRepository.findById(id)
-               .orElseThrow(() -> new RuntimeException("Task not found"));
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
 
-       task.setTitle(request.getTitle());
-       task.setDescription(request.getDescription());
-       task.setProjectId(request.getProjectId());
-       task.setAssignedUserId(request.getAssignedUserId());
-       task.setStatus(request.getStatus());
-       task.setSprintId(request.getSprintId());
-       task.setPriority(request.getPriority());
-       task.setDueDate(request.getDueDate());
-       task.setUpdatedAt(LocalDateTime.now());
+        TaskModel task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
-       return mapToDTO(taskRepository.save(task));
-   }
+        // 🔥 ONLY CREATOR OR ASSIGNEE CAN UPDATE
+        if (!task.getCreatorId().equals(currentUser.getId())
+                && !task.getAssignedUserId().equals(currentUser.getId())) {
+            throw new RuntimeException("Not allowed to update this task");
+        }
+
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setProjectId(request.getProjectId());
+        task.setAssignedUserId(request.getAssignedUserId());
+        task.setStatus(request.getStatus());
+        task.setSprintId(request.getSprintId());
+        task.setPriority(request.getPriority());
+        task.setDueDate(request.getDueDate());
+        task.setUpdatedAt(LocalDateTime.now());
+
+        return mapToDTO(taskRepository.save(task));
+    }
     @Override
     public void deleteTask(String id) {
-        taskRepository.deleteById(id);
+
+        UserModel currentUser =
+                currentUserService.getCurrentUser();
+
+        TaskModel task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getCreatorId().equals(currentUser.getId())) {
+            throw new RuntimeException("Only creator can delete task");
+        }
+
+        taskRepository.delete(task);
     }
 
     @Override
-    public List<TaskResponseDTO> getTasksByStatus(String status){
+    public List<TaskResponseDTO> getTasksByStatus(TaskStatus status){
         return  taskRepository.findByStatus(status).stream().map(this::mapToDTO).toList();
     }
 

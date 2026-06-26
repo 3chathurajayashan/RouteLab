@@ -4,6 +4,7 @@ package com.backend.rootLab.controllers;
 import com.backend.rootLab.DTOS.Sprints.SprintRequestDTO;
 import com.backend.rootLab.DTOS.Sprints.SprintResponseDTO;
 
+import com.backend.rootLab.services.SprintService;
 import com.backend.rootLab.services.SprintServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SprintController {
 
-    private final SprintServiceImpl sprintService;
+    private final SprintService sprintService;
 
     @PostMapping
     public SprintResponseDTO createSprint(@RequestBody SprintRequestDTO request) {
